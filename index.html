@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<!-- =============================================================
+     index.html  —  急診部服設計 徵件投稿頁（呈現層）
+     視覺可在 Claude Design 改；請保留底部 <script src="api.js">
+     與標記為「契約點」的 GASApi.* 呼叫不動，後端就不會壞。
+     ============================================================= -->
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>急診部服設計 徵件</title>
+<style>
+  :root {
+    --bg: #eef2f3; --surface: #ffffff; --ink: #1f2933; --ink-soft: #5b6b75;
+    --line: #d7dee1; --accent: #0d7d74; --accent-soft: #e3f1ef;
+    --warm: #c9772f; --danger: #b4413a; --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    line-height: 1.55; -webkit-text-size-adjust: 100%; }
+  .wrap { max-width: 580px; margin: 0 auto; padding: 24px 16px 64px; }
+
+  .hero { background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 22px; margin-bottom: 16px;
+    border-top: 4px solid var(--accent); }
+  .hero h1 { font-size: 1.3rem; margin: 0 0 12px; }
+  .facts { list-style: none; margin: 0; padding: 0; font-size: .92rem; }
+  .facts li { display: flex; gap: 10px; padding: 5px 0; border-top: 1px solid var(--line); }
+  .facts li:first-child { border-top: none; }
+  .facts .k { flex: none; width: 5.5em; color: var(--ink-soft); }
+  .facts .v { flex: 1; }
+  .pill { display: inline-block; background: var(--accent-soft); color: var(--accent);
+    font-weight: 700; padding: 1px 9px; border-radius: 999px; font-size: .85rem; }
+  .pill.warm { background: #f6e6d6; color: var(--warm); }
+
+  .card { background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 18px; margin-bottom: 16px; }
+  label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 6px; }
+  label .req { color: var(--danger); }
+  input[type="text"], textarea { width: 100%; padding: 10px 12px; font: inherit; color: inherit;
+    border: 1px solid var(--line); border-radius: 8px; background: #fbfcfc; }
+  textarea { min-height: 84px; resize: vertical; }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  .row { display: flex; gap: 12px; }
+  .row .field { flex: 1; }
+  .field + .field, .row + .field { margin-top: 14px; }
+
+  .drop { border: 2px dashed var(--line); border-radius: var(--radius); padding: 26px 16px;
+    text-align: center; cursor: pointer; transition: border-color .15s, background .15s; background: #fbfcfc; }
+  .drop:hover, .drop.drag { border-color: var(--accent); background: var(--accent-soft); }
+  .drop .big { font-weight: 600; }
+  .drop .hint { color: var(--ink-soft); font-size: .82rem; margin-top: 4px; }
+
+  .files { list-style: none; margin: 14px 0 0; padding: 0; }
+  .file { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
+  .thumb { width: 42px; height: 42px; border-radius: 6px; flex: none; object-fit: cover;
+    background: var(--accent-soft); display: grid; place-items: center; font-size: .68rem;
+    color: var(--accent); font-weight: 700; }
+  .file .meta { flex: 1; min-width: 0; }
+  .file .name { font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file .size { font-size: .76rem; color: var(--ink-soft); }
+  .file .rm { border: none; background: none; color: var(--danger); cursor: pointer;
+    font-size: 1.15rem; padding: 4px 8px; line-height: 1; }
+
+  .btn { width: 100%; padding: 14px; font: inherit; font-weight: 700; color: #fff;
+    background: var(--accent); border: none; border-radius: 8px; cursor: pointer; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+  .status { margin-top: 14px; font-size: .9rem; min-height: 1.2em; }
+  .status.ok { color: var(--accent); font-weight: 600; }
+  .status.err { color: var(--danger); white-space: pre-wrap; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="hero">
+      <h1>急診部「部服設計」徵件</h1>
+      <ul class="facts">
+        <li><span class="k">任務</span><span class="v">設計一款急診部專屬部服</span></li>
+        <li><span class="k">投稿期限</span><span class="v"><span class="pill warm">6/23 截止</span>（投稿時間 4 天）</span></li>
+        <li><span class="k">獲選獎勵</span><span class="v">由全員票選，得獎者可獲 <span class="pill">獎勵金 4,000 元</span></span></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div class="field">
+          <label for="name">投稿者姓名 <span class="req">*</span></label>
+          <input id="name" type="text" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="empId">員工編號 <span class="req">*</span></label>
+          <input id="empId" type="text" inputmode="numeric" autocomplete="off">
+        </div>
+      </div>
+      <div class="field">
+        <label for="title">作品名稱 <span class="req">*</span></label>
+        <input id="title" type="text" placeholder="例如：晨曦藍・機能短袖版">
+      </div>
+      <div class="field">
+        <label for="concept">設計理念（選填）</label>
+        <textarea id="concept" placeholder="想說明的配色、機能、靈感…"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>設計圖檔 <span class="req">*</span></label>
+      <div id="drop" class="drop" role="button" tabindex="0" aria-label="點擊或拖放上傳設計圖檔">
+        <div class="big">點此選擇，或把圖檔拖進來</div>
+        <div class="hint">圖片 / PDF · 單檔上限 5MB · 最多 10 個檔案</div>
+      </div>
+      <input id="picker" type="file" accept="image/*,application/pdf" multiple hidden>
+      <ul id="files" class="files"></ul>
+    </div>
+
+    <button id="submit" class="btn">送出投稿</button>
+    <div id="status" class="status" aria-live="polite"></div>
+  </div>
+
+<!-- 契約層：請保留這支引入。 -->
+<script src="api.js"></script>
+<script>
+(function () {
+  const cfg     = window.GASApi.config;
+  const drop    = document.getElementById('drop');
+  const picker  = document.getElementById('picker');
+  const listEl  = document.getElementById('files');
+  const submit  = document.getElementById('submit');
+  const statusEl= document.getElementById('status');
+  let queue = [];
+
+  const fmtSize = b => b < 1048576 ? (b/1024).toFixed(0)+' KB' : (b/1048576).toFixed(1)+' MB';
+  function setStatus(msg, kind){ statusEl.textContent = msg||''; statusEl.className = 'status'+(kind?' '+kind:''); }
+
+  function addFiles(fileList){
+    for (const f of fileList){
+      if (queue.length >= cfg.maxFiles){ setStatus('最多只能上傳 '+cfg.maxFiles+' 個檔案。','err'); break; }
+      if (!cfg.accept.includes(f.type)){ setStatus('不支援的檔案類型：'+(f.name||''),'err'); continue; }
+      if (f.size > cfg.maxFileBytes){ setStatus('檔案太大（上限 5MB）：'+f.name,'err'); continue; }
+      queue.push(f);
+    }
+    render();
+  }
+
+  function render(){
+    listEl.innerHTML = '';
+    queue.forEach((f, i) => {
+      const li = document.createElement('li'); li.className = 'file';
+      if (f.type.startsWith('image/')){
+        const img = document.createElement('img'); img.className = 'thumb';
+        img.src = URL.createObjectURL(f); img.onload = () => URL.revokeObjectURL(img.src);
+        li.appendChild(img);
+      } else {
+        const t = document.createElement('div'); t.className = 'thumb'; t.textContent = 'PDF'; li.appendChild(t);
+      }
+      const meta = document.createElement('div'); meta.className = 'meta';
+      meta.innerHTML = '<div class="name"></div><div class="size"></div>';
+      meta.querySelector('.name').textContent = f.name;
+      meta.querySelector('.size').textContent = fmtSize(f.size);
+      li.appendChild(meta);
+      const rm = document.createElement('button'); rm.className='rm'; rm.type='button';
+      rm.setAttribute('aria-label','移除'); rm.textContent='×';
+      rm.onclick = () => { queue.splice(i,1); render(); };
+      li.appendChild(rm);
+      listEl.appendChild(li);
+    });
+  }
+
+  drop.addEventListener('click', () => picker.click());
+  drop.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); picker.click(); }});
+  picker.addEventListener('change', () => { addFiles(picker.files); picker.value=''; });
+  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+  drop.addEventListener('drop', e => { if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+
+  submit.addEventListener('click', async () => {
+    const name   = document.getElementById('name').value.trim();
+    const empId  = document.getElementById('empId').value.trim();
+    const title  = document.getElementById('title').value.trim();
+    const concept= document.getElementById('concept').value.trim();
+    if (!name || !empId || !title){ setStatus('請填寫姓名、員工編號與作品名稱。','err'); return; }
+    if (queue.length === 0){ setStatus('請至少上傳一張設計圖檔。','err'); return; }
+
+    submit.disabled = true; setStatus('上傳中，請稍候…');
+    try {
+      // ===== 契約點 1：檔案轉 base64 =====
+      const attachments = await window.GASApi.filesToBase64(queue);
+      // ===== 契約點 2：呼叫 GAS =====
+      const res = await window.GASApi.call('submit', { name, empId, title, concept, attachments, ts: Date.now() });
+      if (res && res.ok){
+        setStatus('投稿成功 ✓ 感謝你的參與！','ok');
+        queue = []; render();
+        ['name','empId','title','concept'].forEach(id => document.getElementById(id).value = '');
+      } else {
+        setStatus('送出失敗：' + (res && res.error ? res.error : '未知原因'), 'err');
+      }
+    } catch (err) {
+      setStatus(err.message || '送出時發生錯誤。', 'err');
+    } finally {
+      submit.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
