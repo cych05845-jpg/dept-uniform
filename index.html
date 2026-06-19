@@ -74,6 +74,24 @@
   .status { margin-top: 14px; font-size: .9rem; min-height: 1.2em; }
   .status.ok { color: var(--accent); font-weight: 600; }
   .status.err { color: var(--danger); white-space: pre-wrap; }
+
+  /* 投稿成功提示框 */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+  .modal-bg.show { display: flex; }
+  .modal { background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 420px;
+    padding: 24px 22px; text-align: center; box-shadow: 0 12px 40px rgba(0,0,0,.2); }
+  .modal .check { width: 52px; height: 52px; margin: 0 auto 10px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-size: 1.6rem; font-weight: 700;
+    display: grid; place-items: center; }
+  .modal h2 { margin: 0 0 4px; font-size: 1.2rem; color: var(--accent); }
+  .modal .msg { margin: 0 0 16px; color: var(--ink-soft); font-size: .92rem; }
+  .modal .sum { text-align: left; margin: 0 0 14px; padding: 14px; background: #fbfcfc;
+    border: 1px solid var(--line); border-radius: 8px; display: grid;
+    grid-template-columns: 5.5em 1fr; gap: 6px 10px; font-size: .9rem; }
+  .modal .sum dt { color: var(--ink-soft); }
+  .modal .sum dd { margin: 0; word-break: break-word; }
+  .modal .tip { margin: 0 0 16px; font-size: .85rem; color: var(--warm); }
 </style>
 </head>
 <body>
@@ -126,6 +144,23 @@
 
     <button id="submit" class="btn">送出投稿</button>
     <div id="status" class="status" aria-live="polite"></div>
+  </div>
+
+  <!-- 投稿成功提示框 -->
+  <div id="modalBg" class="modal-bg">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+      <div class="check">✓</div>
+      <h2 id="mTitle">投稿成功</h2>
+      <p class="msg">已收到你的投稿，感謝參與！</p>
+      <dl class="sum">
+        <dt>作品名稱</dt><dd id="mTitleVal"></dd>
+        <dt>投稿者</dt><dd id="mNameVal"></dd>
+        <dt>上傳檔案</dt><dd id="mFilesVal"></dd>
+        <dt>投稿時間</dt><dd id="mTimeVal"></dd>
+      </dl>
+      <p class="tip">建議截圖此畫面留存，作為投稿憑證。</p>
+      <button id="modalClose" class="btn">完成</button>
+    </div>
   </div>
 
 <!-- 契約層：請保留這支引入。 -->
@@ -198,9 +233,22 @@
       // ===== 契約點 1：檔案轉 base64 =====
       const attachments = await window.GASApi.filesToBase64(queue);
       // ===== 契約點 2：呼叫 GAS =====
+      const fileNames = queue.map(f => f.name);
       const res = await window.GASApi.call('submit', { name, empId, contact, title, concept, attachments, ts: Date.now() });
       if (res && res.ok){
-        setStatus('投稿成功 ✓ 感謝你的參與！','ok');
+        // 填入提示框內容
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        document.getElementById('mTitleVal').textContent = title;
+        document.getElementById('mNameVal').textContent  = name;
+        document.getElementById('mFilesVal').textContent =
+          fileNames.length + ' 個檔案（' + fileNames.join('、') + '）';
+        document.getElementById('mTimeVal').textContent =
+          now.getFullYear() + '/' + pad(now.getMonth()+1) + '/' + pad(now.getDate()) +
+          ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+        document.getElementById('modalBg').classList.add('show');
+
+        setStatus('');
         queue = []; render();
         ['name','empId','contact','title','concept'].forEach(id => document.getElementById(id).value = '');
       } else {
@@ -212,6 +260,11 @@
       submit.disabled = false;
     }
   });
+
+  // 關閉提示框：按「完成」或點背景空白處
+  const modalBg = document.getElementById('modalBg');
+  document.getElementById('modalClose').addEventListener('click', () => modalBg.classList.remove('show'));
+  modalBg.addEventListener('click', (e) => { if (e.target === modalBg) modalBg.classList.remove('show'); });
 })();
 </script>
 </body>
