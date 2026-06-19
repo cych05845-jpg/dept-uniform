@@ -42,9 +42,10 @@
     border: 1px solid var(--line); border-radius: 8px; background: #fbfcfc; }
   textarea { min-height: 84px; resize: vertical; }
   input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
-  .row { display: flex; gap: 12px; }
+  .row { display: flex; gap: 12px; align-items: flex-start; }
   .row .field { flex: 1; }
   .field + .field, .row + .field { margin-top: 14px; }
+  .row .field + .field { margin-top: 0; }   /* 並排時第二欄歸零，與第一欄頂端切齊 */
 
   .drop { border: 2px dashed var(--line); border-radius: var(--radius); padding: 26px 16px;
     text-align: center; cursor: pointer; transition: border-color .15s, background .15s; background: #fbfcfc; }
@@ -94,6 +95,10 @@
           <label for="empId">員工編號 <span class="req">*</span></label>
           <input id="empId" type="text" inputmode="numeric" autocomplete="off">
         </div>
+      </div>
+      <div class="field">
+        <label for="contact">聯絡方式（選填，分機 / 手機 / LINE）</label>
+        <input id="contact" type="text" autocomplete="off" placeholder="得獎或打樣時方便聯絡你">
       </div>
       <div class="field">
         <label for="title">作品名稱 <span class="req">*</span></label>
@@ -178,6 +183,7 @@
   submit.addEventListener('click', async () => {
     const name   = document.getElementById('name').value.trim();
     const empId  = document.getElementById('empId').value.trim();
+    const contact= document.getElementById('contact').value.trim();
     const title  = document.getElementById('title').value.trim();
     const concept= document.getElementById('concept').value.trim();
     if (!name || !empId || !title){ setStatus('請填寫姓名、員工編號與作品名稱。','err'); return; }
@@ -188,11 +194,11 @@
       // ===== 契約點 1：檔案轉 base64 =====
       const attachments = await window.GASApi.filesToBase64(queue);
       // ===== 契約點 2：呼叫 GAS =====
-      const res = await window.GASApi.call('submit', { name, empId, title, concept, attachments, ts: Date.now() });
+      const res = await window.GASApi.call('submit', { name, empId, contact, title, concept, attachments, ts: Date.now() });
       if (res && res.ok){
         setStatus('投稿成功 ✓ 感謝你的參與！','ok');
         queue = []; render();
-        ['name','empId','title','concept'].forEach(id => document.getElementById(id).value = '');
+        ['name','empId','contact','title','concept'].forEach(id => document.getElementById(id).value = '');
       } else {
         setStatus('送出失敗：' + (res && res.error ? res.error : '未知原因'), 'err');
       }
