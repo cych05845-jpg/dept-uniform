@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <!-- =============================================================
-     vote.html  —  急診部服設計 投票頁（呈現層）
-     與 index.html 共用 api.js / 同一個 GAS 後端。
-     是否開放投票由「設定」分頁的「投票狀態」決定：
-       未開始 → 顯示「尚未開始」  ｜  投票中 → 展開投票  ｜  已結束 → 顯示結果
+     vote.html  —  急診部服設計 投票頁
+     四階段（由「設定」分頁的「投票狀態」決定）：
+       未開始 ｜ 投票中(即時戰況) ｜ 計票中(封盤吊胃口) ｜ 已結束(揭曉)
+     共用 api.js / 同一個 GAS 後端。
      ============================================================= -->
 <html lang="zh-Hant">
 <head>
@@ -14,7 +14,7 @@
   :root {
     --bg: #eef2f3; --surface: #ffffff; --ink: #1f2933; --ink-soft: #5b6b75;
     --line: #d7dee1; --accent: #0d7d74; --accent-soft: #e3f1ef;
-    --warm: #c9772f; --danger: #b4413a; --radius: 12px;
+    --warm: #c9772f; --gold: #d4a017; --danger: #b4413a; --radius: 12px;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink);
@@ -27,18 +27,56 @@
   .hero h1 { font-size: 1.25rem; margin: 0 0 4px; }
   .hero p { margin: 0; color: var(--ink-soft); font-size: .9rem; }
 
+  .rules { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px 18px; margin-bottom: 16px; }
+  .rules .rtitle { font-weight: 700; margin-bottom: 8px; }
+  .rules ul { margin: 0; padding-left: 1.2em; font-size: .9rem; color: var(--ink); }
+  .rules li { padding: 3px 0; }
+  .rules b { color: var(--accent); }
+
   .center { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
     padding: 40px 22px; text-align: center; }
-  .center .big { font-size: 1.15rem; font-weight: 700; margin-bottom: 6px; }
-  .center .sub { color: var(--ink-soft); font-size: .92rem; }
+  .center .emoji { font-size: 2.4rem; line-height: 1; margin-bottom: 10px; }
+  .center .big { font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; }
+  .center .sub { color: var(--ink-soft); font-size: .95rem; }
+  .center .num { color: var(--accent); font-weight: 700; }
 
   .voter { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 16px; margin-bottom: 16px; }
+    padding: 16px; margin-bottom: 14px; }
   .voter label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 6px; }
   .voter input { width: 100%; padding: 10px 12px; font: inherit;
     border: 1px solid var(--line); border-radius: 8px; background: #fbfcfc; }
   .voter input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
 
+  /* 即時戰況 / 結果長條圖 */
+  .board { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 14px; }
+  .board .bhead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .board .btitle { font-weight: 700; }
+  .board .btotal { font-size: .85rem; color: var(--ink-soft); }
+  .board .btotal b { color: var(--accent); font-size: 1rem; }
+  .brow { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+  .bno { width: 22px; height: 22px; flex: none; border-radius: 50%; display: grid; place-items: center;
+    font-size: .75rem; font-weight: 700; background: var(--accent-soft); color: var(--accent); }
+  .brow.first .bno { background: var(--gold); color: #fff; }
+  .bbody { flex: 1; min-width: 0; }
+  .bnm { font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+  .btrack { height: 8px; background: var(--accent-soft); border-radius: 99px; overflow: hidden; }
+  .bfill { height: 100%; background: var(--accent); border-radius: 99px; transition: width .5s; }
+  .brow.first .bfill { background: var(--gold); }
+  .bvt { flex: none; font-size: .85rem; font-weight: 700; color: var(--ink); min-width: 2.6em; text-align: right; }
+
+  /* 冠軍揭曉 */
+  .champ { background: var(--surface); border: 2px solid var(--gold); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 14px; text-align: center; }
+  .champ .badge { display: inline-block; background: var(--gold); color: #fff; font-weight: 700;
+    font-size: .85rem; padding: 3px 12px; border-radius: 99px; margin-bottom: 12px; }
+  .champ img { width: 100%; max-height: 320px; object-fit: contain; border-radius: 8px;
+    background: #fbfcfc; border: 1px solid var(--line); margin-bottom: 12px; }
+  .champ .cnm { font-size: 1.2rem; font-weight: 700; }
+  .champ .cvt { color: var(--warm); font-weight: 700; margin-top: 2px; }
+
+  /* 投票卡片 */
   .card { background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius);
     padding: 14px; margin-bottom: 14px; cursor: pointer; transition: border-color .12s, box-shadow .12s; }
   .card.sel { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
@@ -47,22 +85,18 @@
   .card.sel .pick { border-color: var(--accent); background: var(--accent);
     background-image: radial-gradient(circle, #fff 32%, var(--accent) 36%); }
   .card .title { font-weight: 700; }
-  .card .concept { color: var(--ink-soft); font-size: .88rem; margin: 0 0 10px; white-space: pre-wrap; }
+  .card .concept { color: var(--ink-soft); font-size: .88rem; margin: 0 0 6px; white-space: pre-wrap; }
+  .card .concept.clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .card .more { display: none; border: none; background: none; color: var(--accent);
+    font: inherit; font-size: .85rem; font-weight: 600; padding: 0 0 10px; cursor: pointer; }
   .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
   .gallery a { display: block; }
   .gallery img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 8px;
     background: var(--accent-soft); border: 1px solid var(--line); }
   .imgfail { font-size: .78rem; color: var(--danger); padding: 6px 0; }
 
-  /* 排名（已結束） */
-  .rank { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-  .rank .item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
-  .rank .item:first-child { border-top: none; }
-  .rank .no { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
-    font-weight: 700; font-size: .85rem; background: var(--accent-soft); color: var(--accent); flex: none; }
-  .rank .item.top .no { background: var(--warm); color: #fff; }
-  .rank .nm { flex: 1; font-weight: 600; }
-  .rank .vt { color: var(--ink-soft); font-size: .9rem; }
+  .banner { background: var(--accent-soft); border: 1px solid var(--accent); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 14px; text-align: center; color: var(--accent); font-weight: 700; }
 
   .bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface);
     border-top: 1px solid var(--line); padding: 12px 16px; }
@@ -81,6 +115,18 @@
       <h1>急診部服設計 投票</h1>
       <p>每人限投一票，請選出你最喜歡的一款部服。</p>
     </div>
+
+    <div class="rules">
+      <div class="rtitle">📋 投票規則</div>
+      <ul>
+        <li>每人限投 <b>1 票</b>，投出後不可更改</li>
+        <li>投票期間：<b>6/24（三）～ 6/27（六）</b></li>
+        <li>結果公告：<b>6/28（日）</b>，票數最高者為冠軍</li>
+        <li>得獎獎勵：<b>獎勵金 4,000 元</b></li>
+        <li>投票期間可即時看到目前票數與排名</li>
+      </ul>
+    </div>
+
     <div id="root"><div class="center"><div class="big">載入中…</div></div></div>
   </div>
 
@@ -94,89 +140,198 @@
 <script src="api.js"></script>
 <script>
 (function () {
-  const root   = document.getElementById('root');
-  const bar    = document.getElementById('bar');
+  const root = document.getElementById('root');
+  const bar  = document.getElementById('bar');
   const submit = document.getElementById('submit');
   const statusEl = document.getElementById('status');
   let selectedId = null;
+  let hasVoted = false;
+  let pollTimer = null;
 
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   function setStatus(m, k){ statusEl.textContent = m||''; statusEl.className = 'status'+(k?' '+k:''); }
-  function screen(html){ root.innerHTML = html; }
+  function clear(){ root.innerHTML = ''; }
+  function stopPoll(){ if (pollTimer) clearInterval(pollTimer); pollTimer = null; }
 
+  /* ---------- 縮圖 ---------- */
+  function gallery(e){
+    const g = el('div', 'gallery');
+    (e.thumbs || []).forEach((t, i) => {
+      const a = el('a'); a.href = e.views[i]; a.target = '_blank'; a.rel = 'noopener';
+      const img = el('img'); img.src = t; img.alt = '設計圖'; img.loading = 'lazy';
+      img.onerror = () => { img.style.display = 'none'; const f = el('div','imgfail','圖片載入失敗'); a.appendChild(f); };
+      a.appendChild(img); g.appendChild(a);
+    });
+    return g;
+  }
+
+  /* ---------- 戰況 / 結果長條圖 ---------- */
+  function board(entries, total, title){
+    const sorted = entries.slice().sort((a,b) => (b.votes||0) - (a.votes||0));
+    const max = Math.max(1, ...sorted.map(e => e.votes || 0));
+    const box = el('div', 'board');
+    const head = el('div', 'bhead');
+    head.appendChild(el('span', 'btitle', title || '目前戰況'));
+    const tot = el('span', 'btotal'); tot.innerHTML = '共 <b>' + total + '</b> 人投票';
+    head.appendChild(tot);
+    box.appendChild(head);
+    sorted.forEach((e, i) => {
+      const row = el('div', 'brow' + (i === 0 && (e.votes||0) > 0 ? ' first' : ''));
+      row.appendChild(el('span', 'bno', i + 1));
+      const body = el('div', 'bbody');
+      body.appendChild(el('div', 'bnm', e.title));
+      const track = el('div', 'btrack');
+      const fill = el('div', 'bfill'); fill.style.width = ((e.votes||0) / max * 100) + '%';
+      track.appendChild(fill); body.appendChild(track);
+      row.appendChild(body);
+      row.appendChild(el('span', 'bvt', (e.votes||0) + ' 票'));
+      box.appendChild(row);
+    });
+    return box;
+  }
+
+  /* ---------- 各畫面 ---------- */
   function notStarted(){
-    bar.style.display = 'none';
-    screen('<div class="center"><div class="big">投票尚未開始</div>' +
-           '<div class="sub">收件截止後就會開放，再麻煩留意通知～</div></div>');
+    stopPoll(); bar.style.display = 'none'; clear();
+    const c = el('div','center');
+    c.appendChild(el('div','big','投票尚未開始'));
+    c.appendChild(el('div','sub','收件截止後就會開放，再麻煩留意通知～'));
+    root.appendChild(c);
   }
 
   function noEntries(){
-    bar.style.display = 'none';
-    screen('<div class="center"><div class="big">目前還沒有作品</div>' +
-           '<div class="sub">等有人投稿後再回來投票吧。</div></div>');
+    stopPoll(); bar.style.display = 'none'; clear();
+    const c = el('div','center');
+    c.appendChild(el('div','big','目前還沒有作品'));
+    root.appendChild(c);
   }
 
-  function thumbHtml(e){
-    if (!e.thumbs || !e.thumbs.length) return '';
-    const cells = e.thumbs.map((t, i) =>
-      '<a href="' + e.views[i] + '" target="_blank" rel="noopener">' +
-      '<img src="' + t + '" alt="設計圖" loading="lazy" ' +
-      'onerror="this.style.display=\'none\';this.insertAdjacentHTML(\'afterend\',\'<div class=&quot;imgfail&quot;>圖片載入失敗</div>\')"></a>'
-    ).join('');
-    return '<div class="gallery">' + cells + '</div>';
+  function tallying(res){            // 計票中：封盤吊胃口
+    stopPoll(); bar.style.display = 'none'; clear();
+    const c = el('div','center');
+    c.appendChild(el('div','emoji','🎉'));
+    c.appendChild(el('div','big','投票已截止'));
+    const sub = el('div','sub');
+    sub.innerHTML = '共 <span class="num">' + (res.totalVotes||0) + '</span> 人參與投票，感謝大家！';
+    c.appendChild(sub);
+    const reveal = el('div','sub');
+    reveal.style.marginTop = '10px';
+    reveal.innerHTML = '🏆 冠軍將於 <span class="num">' + (res.revealDate || '近日') + '</span> 揭曉，敬請期待';
+    c.appendChild(reveal);
+    root.appendChild(c);
   }
 
-  function voting(entries){
-    bar.style.display = 'block';
-    let html = '<div class="voter"><label for="voterId">你的員工編號</label>' +
-               '<input id="voterId" type="text" inputmode="numeric" placeholder="用來確認一人一票"></div>';
+  function results(res){             // 已結束：揭曉
+    stopPoll(); bar.style.display = 'none'; clear();
+    const entries = res.entries || [];
+    const sorted = entries.slice().sort((a,b) => (b.votes||0) - (a.votes||0));
+    const champ = sorted[0];
+
+    if (champ) {
+      const box = el('div','champ');
+      box.appendChild(el('span','badge','🏆 冠軍'));
+      if (champ.thumbs && champ.thumbs.length) {
+        const img = el('img'); img.src = champ.thumbs[0]; img.alt = '冠軍作品';
+        img.onerror = () => { img.style.display = 'none'; };
+        box.appendChild(img);
+      }
+      box.appendChild(el('div','cnm', champ.title));
+      box.appendChild(el('div','cvt', (champ.votes||0) + ' 票'));
+      root.appendChild(box);
+    }
+    root.appendChild(board(entries, res.totalVotes || 0, '完整票數'));
+  }
+
+  function renderVoted(res){         // 投完票：成功 + 繼續看戰況
+    bar.style.display = 'none'; clear();
+    root.appendChild(el('div','banner','投票成功 ✓ 謝謝你的參與！'));
+    const host = el('div'); host.id = 'boardHost';
+    host.appendChild(board(res.entries || [], res.totalVotes || 0, '目前戰況'));
+    root.appendChild(host);
+  }
+
+  function voting(res){              // 投票中：戰況 + 投票卡片
+    bar.style.display = 'block'; clear();
+    const entries = res.entries || [];
+
+    const voter = el('div','voter');
+    const lab = el('label','',''); lab.htmlFor = 'voterId'; lab.textContent = '你的員工編號';
+    const inp = el('input'); inp.id = 'voterId'; inp.type = 'text'; inp.inputMode = 'numeric'; inp.placeholder = '用來確認一人一票';
+    voter.appendChild(lab); voter.appendChild(inp);
+    root.appendChild(voter);
+
+    const host = el('div'); host.id = 'boardHost';
+    host.appendChild(board(entries, res.totalVotes || 0, '目前戰況'));
+    root.appendChild(host);
+
     entries.forEach(e => {
-      html += '<div class="card" data-id="' + e.id + '">' +
-              '<div class="head"><span class="pick"></span><span class="title"></span></div>' +
-              (e.concept ? '<p class="concept"></p>' : '') +
-              thumbHtml(e) + '</div>';
-    });
-    screen(html);
-    // 安全填入文字（避免 HTML 注入）
-    const cards = root.querySelectorAll('.card');
-    cards.forEach((card, idx) => {
-      card.querySelector('.title').textContent = entries[idx].title;
-      const cc = card.querySelector('.concept'); if (cc) cc.textContent = entries[idx].concept;
+      const card = el('div','card'); card.dataset.id = e.id;
+      const head = el('div','head');
+      head.appendChild(el('span','pick'));
+      head.appendChild(el('span','title', e.title));
+      card.appendChild(head);
+      if (e.concept) {
+        card.appendChild(el('p','concept clamp', e.concept));
+        const more = el('button','more','⋯ 更多'); more.type = 'button';
+        card.appendChild(more);
+        const cc = card.querySelector('.concept');
+        requestAnimationFrame(() => { if (cc.scrollHeight > cc.clientHeight + 2) more.style.display = 'inline-block'; });
+        more.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const clamped = cc.classList.toggle('clamp');
+          more.textContent = clamped ? '⋯ 更多' : '收合';
+        });
+      }
+      card.appendChild(gallery(e));
       card.addEventListener('click', (ev) => {
-        if (ev.target.tagName === 'A' || ev.target.tagName === 'IMG') return; // 點圖是看大圖
-        cards.forEach(c => c.classList.remove('sel'));
+        if (ev.target.tagName === 'A' || ev.target.tagName === 'IMG' || ev.target.classList.contains('more')) return;
+        root.querySelectorAll('.card').forEach(c => c.classList.remove('sel'));
         card.classList.add('sel');
-        selectedId = card.getAttribute('data-id');
+        selectedId = card.dataset.id;
         setStatus('');
       });
+      root.appendChild(card);
     });
   }
 
-  function results(entries){
-    bar.style.display = 'none';
-    const sorted = entries.slice().sort((a,b) => b.votes - a.votes);
-    let html = '<div class="rank">';
-    sorted.forEach((e, i) => {
-      html += '<div class="item' + (i === 0 ? ' top' : '') + '">' +
-              '<span class="no">' + (i+1) + '</span>' +
-              '<span class="nm"></span><span class="vt">' + e.votes + ' 票</span></div>';
-    });
-    html += '</div>';
-    screen('<div class="center" style="padding:18px"><div class="big">投票結果</div></div>' + html);
-    root.querySelectorAll('.nm').forEach((el, i) => el.textContent = sorted[i].title);
+  /* ---------- 分派 ---------- */
+  function render(res){
+    if (res.status === '未開始') return notStarted();
+    if (res.status === '計票中') return tallying(res);
+    if (res.status === '已結束') return results(res);
+    if (!res.entries || res.entries.length === 0) return noEntries();
+    if (hasVoted) { renderVoted(res); return; }   // 投票中但已投過
+    voting(res);
   }
 
+  /* ---------- 自動刷新（投票中／已投票，看戰況） ---------- */
+  function startPoll(){
+    stopPoll();
+    pollTimer = setInterval(async () => {
+      try {
+        const res = await window.GASApi.call('listEntries', {});
+        if (!res || !res.ok) return;
+        if (res.status !== '投票中') { render(res); return; }   // 狀態變了就切畫面
+        const host = document.getElementById('boardHost');       // 只更新戰況
+        if (host) { host.innerHTML = ''; host.appendChild(board(res.entries || [], res.totalVotes || 0, hasVoted ? '目前戰況' : '目前戰況')); }
+      } catch (e) {}
+    }, 15000);
+  }
+
+  /* ---------- 送出投票 ---------- */
   submit.addEventListener('click', async () => {
-    const voterId = (document.getElementById('voterId') || {}).value;
-    const vid = (voterId || '').trim();
+    const inp = document.getElementById('voterId');
+    const vid = (inp ? inp.value : '').trim();
     if (!vid){ setStatus('請先填你的員工編號。', 'err'); return; }
     if (!selectedId){ setStatus('請點選一款你要投的作品。', 'err'); return; }
     submit.disabled = true; setStatus('送出中…');
     try {
       const res = await window.GASApi.call('vote', { voterId: vid, entryId: selectedId });
       if (res && res.ok){
-        bar.style.display = 'none';
-        screen('<div class="center"><div class="big">投票成功 ✓</div>' +
-               '<div class="sub">謝謝你的參與！</div></div>');
+        hasVoted = true;
+        const fresh = await window.GASApi.call('listEntries', {});
+        renderVoted(fresh && fresh.ok ? fresh : { entries: [], totalVotes: 0 });
+        startPoll();
       } else {
         setStatus(res && res.error ? res.error : '投票失敗', 'err');
         submit.disabled = false;
@@ -187,17 +342,23 @@
     }
   });
 
-  // 進場：問後端目前狀態 + 取作品
+  /* ---------- 進場 ---------- */
   (async function init(){
     try {
       const res = await window.GASApi.call('listEntries', {});
-      if (!res || !res.ok){ screen('<div class="center"><div class="big">載入失敗</div><div class="sub">' + ((res&&res.error)||'') + '</div></div>'); return; }
-      if (res.status === '未開始'){ notStarted(); return; }
-      if (!res.entries || res.entries.length === 0){ noEntries(); return; }
-      if (res.status === '已結束'){ results(res.entries); return; }
-      voting(res.entries);   // 投票中
+      if (!res || !res.ok){
+        clear(); const c = el('div','center');
+        c.appendChild(el('div','big','載入失敗'));
+        c.appendChild(el('div','sub', (res && res.error) || ''));
+        root.appendChild(c); return;
+      }
+      render(res);
+      if (res.status === '投票中') startPoll();
     } catch (err) {
-      screen('<div class="center"><div class="big">載入失敗</div><div class="sub">' + (err.message||'') + '</div></div>');
+      clear(); const c = el('div','center');
+      c.appendChild(el('div','big','載入失敗'));
+      c.appendChild(el('div','sub', err.message || ''));
+      root.appendChild(c);
     }
   })();
 })();
