@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<!-- =============================================================
+     vote.html  —  急診部服設計 投票頁（呈現層）
+     與 index.html 共用 api.js / 同一個 GAS 後端。
+     是否開放投票由「設定」分頁的「投票狀態」決定：
+       未開始 → 顯示「尚未開始」  ｜  投票中 → 展開投票  ｜  已結束 → 顯示結果
+     ============================================================= -->
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>急診部服設計 投票</title>
+<style>
+  :root {
+    --bg: #eef2f3; --surface: #ffffff; --ink: #1f2933; --ink-soft: #5b6b75;
+    --line: #d7dee1; --accent: #0d7d74; --accent-soft: #e3f1ef;
+    --warm: #c9772f; --danger: #b4413a; --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    line-height: 1.55; -webkit-text-size-adjust: 100%; }
+  .wrap { max-width: 600px; margin: 0 auto; padding: 24px 16px 110px; }
+
+  .hero { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 16px; border-top: 4px solid var(--accent); }
+  .hero h1 { font-size: 1.25rem; margin: 0 0 4px; }
+  .hero p { margin: 0; color: var(--ink-soft); font-size: .9rem; }
+
+  .center { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 40px 22px; text-align: center; }
+  .center .big { font-size: 1.15rem; font-weight: 700; margin-bottom: 6px; }
+  .center .sub { color: var(--ink-soft); font-size: .92rem; }
+
+  .voter { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 16px; }
+  .voter label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 6px; }
+  .voter input { width: 100%; padding: 10px 12px; font: inherit;
+    border: 1px solid var(--line); border-radius: 8px; background: #fbfcfc; }
+  .voter input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+
+  .card { background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius);
+    padding: 14px; margin-bottom: 14px; cursor: pointer; transition: border-color .12s, box-shadow .12s; }
+  .card.sel { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .card .head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .card .pick { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); flex: none; }
+  .card.sel .pick { border-color: var(--accent); background: var(--accent);
+    background-image: radial-gradient(circle, #fff 32%, var(--accent) 36%); }
+  .card .title { font-weight: 700; }
+  .card .concept { color: var(--ink-soft); font-size: .88rem; margin: 0 0 10px; white-space: pre-wrap; }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+  .gallery a { display: block; }
+  .gallery img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 8px;
+    background: var(--accent-soft); border: 1px solid var(--line); }
+  .imgfail { font-size: .78rem; color: var(--danger); padding: 6px 0; }
+
+  /* 排名（已結束） */
+  .rank { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .rank .item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .rank .item:first-child { border-top: none; }
+  .rank .no { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+    font-weight: 700; font-size: .85rem; background: var(--accent-soft); color: var(--accent); flex: none; }
+  .rank .item.top .no { background: var(--warm); color: #fff; }
+  .rank .nm { flex: 1; font-weight: 600; }
+  .rank .vt { color: var(--ink-soft); font-size: .9rem; }
+
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface);
+    border-top: 1px solid var(--line); padding: 12px 16px; }
+  .bar .inner { max-width: 600px; margin: 0 auto; }
+  .btn { width: 100%; padding: 14px; font: inherit; font-weight: 700; color: #fff;
+    background: var(--accent); border: none; border-radius: 8px; cursor: pointer; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+  .status { margin-top: 10px; font-size: .9rem; min-height: 1.1em; text-align: center; }
+  .status.ok { color: var(--accent); font-weight: 600; }
+  .status.err { color: var(--danger); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>急診部服設計 投票</h1>
+      <p>每人限投一票，請選出你最喜歡的一款部服。</p>
+    </div>
+    <div id="root"><div class="center"><div class="big">載入中…</div></div></div>
+  </div>
+
+  <div id="bar" class="bar" style="display:none">
+    <div class="inner">
+      <button id="submit" class="btn">送出我的一票</button>
+      <div id="status" class="status" aria-live="polite"></div>
+    </div>
+  </div>
+
+<script src="api.js"></script>
+<script>
+(function () {
+  const root   = document.getElementById('root');
+  const bar    = document.getElementById('bar');
+  const submit = document.getElementById('submit');
+  const statusEl = document.getElementById('status');
+  let selectedId = null;
+
+  function setStatus(m, k){ statusEl.textContent = m||''; statusEl.className = 'status'+(k?' '+k:''); }
+  function screen(html){ root.innerHTML = html; }
+
+  function notStarted(){
+    bar.style.display = 'none';
+    screen('<div class="center"><div class="big">投票尚未開始</div>' +
+           '<div class="sub">收件截止後就會開放，再麻煩留意通知～</div></div>');
+  }
+
+  function noEntries(){
+    bar.style.display = 'none';
+    screen('<div class="center"><div class="big">目前還沒有作品</div>' +
+           '<div class="sub">等有人投稿後再回來投票吧。</div></div>');
+  }
+
+  function thumbHtml(e){
+    if (!e.thumbs || !e.thumbs.length) return '';
+    const cells = e.thumbs.map((t, i) =>
+      '<a href="' + e.views[i] + '" target="_blank" rel="noopener">' +
+      '<img src="' + t + '" alt="設計圖" loading="lazy" ' +
+      'onerror="this.style.display=\'none\';this.insertAdjacentHTML(\'afterend\',\'<div class=&quot;imgfail&quot;>圖片載入失敗</div>\')"></a>'
+    ).join('');
+    return '<div class="gallery">' + cells + '</div>';
+  }
+
+  function voting(entries){
+    bar.style.display = 'block';
+    let html = '<div class="voter"><label for="voterId">你的員工編號</label>' +
+               '<input id="voterId" type="text" inputmode="numeric" placeholder="用來確認一人一票"></div>';
+    entries.forEach(e => {
+      html += '<div class="card" data-id="' + e.id + '">' +
+              '<div class="head"><span class="pick"></span><span class="title"></span></div>' +
+              (e.concept ? '<p class="concept"></p>' : '') +
+              thumbHtml(e) + '</div>';
+    });
+    screen(html);
+    // 安全填入文字（避免 HTML 注入）
+    const cards = root.querySelectorAll('.card');
+    cards.forEach((card, idx) => {
+      card.querySelector('.title').textContent = entries[idx].title;
+      const cc = card.querySelector('.concept'); if (cc) cc.textContent = entries[idx].concept;
+      card.addEventListener('click', (ev) => {
+        if (ev.target.tagName === 'A' || ev.target.tagName === 'IMG') return; // 點圖是看大圖
+        cards.forEach(c => c.classList.remove('sel'));
+        card.classList.add('sel');
+        selectedId = card.getAttribute('data-id');
+        setStatus('');
+      });
+    });
+  }
+
+  function results(entries){
+    bar.style.display = 'none';
+    const sorted = entries.slice().sort((a,b) => b.votes - a.votes);
+    let html = '<div class="rank">';
+    sorted.forEach((e, i) => {
+      html += '<div class="item' + (i === 0 ? ' top' : '') + '">' +
+              '<span class="no">' + (i+1) + '</span>' +
+              '<span class="nm"></span><span class="vt">' + e.votes + ' 票</span></div>';
+    });
+    html += '</div>';
+    screen('<div class="center" style="padding:18px"><div class="big">投票結果</div></div>' + html);
+    root.querySelectorAll('.nm').forEach((el, i) => el.textContent = sorted[i].title);
+  }
+
+  submit.addEventListener('click', async () => {
+    const voterId = (document.getElementById('voterId') || {}).value;
+    const vid = (voterId || '').trim();
+    if (!vid){ setStatus('請先填你的員工編號。', 'err'); return; }
+    if (!selectedId){ setStatus('請點選一款你要投的作品。', 'err'); return; }
+    submit.disabled = true; setStatus('送出中…');
+    try {
+      const res = await window.GASApi.call('vote', { voterId: vid, entryId: selectedId });
+      if (res && res.ok){
+        bar.style.display = 'none';
+        screen('<div class="center"><div class="big">投票成功 ✓</div>' +
+               '<div class="sub">謝謝你的參與！</div></div>');
+      } else {
+        setStatus(res && res.error ? res.error : '投票失敗', 'err');
+        submit.disabled = false;
+      }
+    } catch (err) {
+      setStatus(err.message || '送出時發生錯誤', 'err');
+      submit.disabled = false;
+    }
+  });
+
+  // 進場：問後端目前狀態 + 取作品
+  (async function init(){
+    try {
+      const res = await window.GASApi.call('listEntries', {});
+      if (!res || !res.ok){ screen('<div class="center"><div class="big">載入失敗</div><div class="sub">' + ((res&&res.error)||'') + '</div></div>'); return; }
+      if (res.status === '未開始'){ notStarted(); return; }
+      if (!res.entries || res.entries.length === 0){ noEntries(); return; }
+      if (res.status === '已結束'){ results(res.entries); return; }
+      voting(res.entries);   // 投票中
+    } catch (err) {
+      screen('<div class="center"><div class="big">載入失敗</div><div class="sub">' + (err.message||'') + '</div></div>');
+    }
+  })();
+})();
+</script>
+</body>
+</html>
