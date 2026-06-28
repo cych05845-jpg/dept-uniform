@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<!-- =============================================================
+     size.html  —  急診部服 尺寸登記（逐件；第1件免費、第2件起自費）
+     共用 api.js / 同一 GAS 後端與 Sheet。
+     尺寸選項、自費單價皆讀「設定」分頁，可隨時改、免改程式。
+     同一員編重複登記 = 整批更新覆蓋。
+     ============================================================= -->
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>急診部服 尺寸登記</title>
+<style>
+  :root {
+    --bg: #eef2f3; --surface: #ffffff; --ink: #1f2933; --ink-soft: #5b6b75;
+    --line: #d7dee1; --accent: #0d7d74; --accent-soft: #e3f1ef; --warm: #c9772f;
+    --danger: #b4413a; --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    line-height: 1.55; -webkit-text-size-adjust: 100%; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  .hero { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 16px; border-top: 4px solid var(--accent); }
+  .hero h1 { font-size: 1.25rem; margin: 0 0 8px; }
+  .hero .rule { font-size: .9rem; color: var(--ink); background: var(--accent-soft);
+    border-radius: 8px; padding: 10px 12px; }
+  .hero .rule b { color: var(--accent); }
+  .note { background: #fbf3e9; border-radius: 8px; padding: 10px 12px; font-size: .86rem; margin-top: 10px; white-space: pre-wrap; }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 18px; margin-bottom: 16px; }
+  label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 6px; }
+  label .req { color: var(--danger); }
+  input[type="text"] { width: 100%; padding: 10px 12px; font: inherit; color: inherit;
+    border: 1px solid var(--line); border-radius: 8px; background: #fbfcfc; }
+  input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  .row { display: flex; gap: 12px; }
+  .row .field { flex: 1; }
+  .field + .field, .row + .group, .group + .group { margin-top: 14px; }
+
+  .opts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .opt { padding: 9px 16px; font: inherit; border: 1px solid var(--line); border-radius: 99px;
+    background: #fbfcfc; color: var(--ink); cursor: pointer; }
+  .opt.sel { border-color: var(--accent); background: var(--accent); color: #fff; font-weight: 700; }
+
+  /* 每一件 */
+  .item { border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+  .item .ihead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .item .ilabel { font-weight: 700; }
+  .item .ilabel .free { color: var(--accent); }
+  .item .ilabel .paid { color: var(--warm); }
+  .item .rm { border: none; background: none; color: var(--danger); font: inherit; font-size: .85rem; cursor: pointer; }
+  .item .sub { font-size: .8rem; color: var(--ink-soft); margin: 4px 0 6px; }
+  .additem { width: 100%; padding: 11px; font: inherit; font-weight: 600; color: var(--accent);
+    background: var(--surface); border: 1px dashed var(--accent); border-radius: 8px; cursor: pointer; }
+
+  .summary { background: var(--accent-soft); border-radius: 8px; padding: 12px 14px; margin: 14px 0 0;
+    font-size: .92rem; }
+  .summary b { color: var(--accent); }
+  .summary .pay { color: var(--warm); font-weight: 700; }
+
+  /* 繳款區（有自費才顯示） */
+  .pay { margin-top: 12px; border: 1px solid var(--warm); border-radius: 10px; padding: 14px; background: #fffaf4; }
+  .pay .pt { font-weight: 700; color: var(--warm); margin-bottom: 8px; }
+  .pay .amt { font-size: .95rem; margin-bottom: 10px; }
+  .pay .amt b { color: var(--warm); }
+  .pay .linebtn { display: block; text-align: center; text-decoration: none; padding: 12px;
+    background: #06C755; color: #fff; font-weight: 700; border-radius: 8px; margin-bottom: 10px; }
+  .pay .bank { font-size: .9rem; background: #fff; border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 12px; white-space: pre-wrap; margin-bottom: 10px; }
+  .pay .bank .bh { font-weight: 700; margin-bottom: 4px; }
+  .pay .memo { font-size: .85rem; color: var(--ink-soft); }
+
+  .btn { width: 100%; padding: 14px; font: inherit; font-weight: 700; color: #fff;
+    background: var(--accent); border: none; border-radius: 8px; cursor: pointer; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+  .status { margin-top: 12px; font-size: .9rem; min-height: 1.1em; }
+  .status.ok { color: var(--accent); font-weight: 600; }
+  .status.err { color: var(--danger); }
+
+  .stat .shead { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .stat .stitle { font-weight: 700; }
+  .stat .stotal { font-size: .85rem; color: var(--ink-soft); }
+  .stat .stotal b { color: var(--accent); font-size: 1.05rem; }
+  .srow { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  .ssz { width: 3em; flex: none; font-weight: 700; font-size: .9rem; }
+  .strack { flex: 1; height: 9px; background: var(--accent-soft); border-radius: 99px; overflow: hidden; }
+  .sfill { height: 100%; background: var(--accent); border-radius: 99px; transition: width .4s; }
+  .scnt { flex: none; min-width: 3em; text-align: right; font-size: .88rem; font-weight: 700; }
+  .sfoot { margin-top: 10px; font-size: .85rem; color: var(--ink-soft); }
+  .refresh { display: block; margin: 10px auto 0; padding: 8px 16px; font: inherit; font-weight: 600;
+    color: var(--accent); background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; cursor: pointer; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>急診部服 尺寸登記</h1>
+      <div class="rule">本單位員工 <b>第 1 件免費</b>（科部贈送）；<b>第 2 件起自費</b>。每件可各自選版型與尺寸。</div>
+      <div id="note" class="note" style="display:none"></div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div class="field">
+          <label for="name">姓名 <span class="req">*</span></label>
+          <input id="name" type="text" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="empId">員工編號 <span class="req">*</span></label>
+          <input id="empId" type="text" inputmode="numeric" autocomplete="off">
+        </div>
+      </div>
+      <div class="group" style="margin-top:14px">
+        <label>職類 <span class="req">*</span></label>
+        <div id="roleOpts" class="opts">
+          <button class="opt" type="button" data-v="護理">護理</button>
+          <button class="opt" type="button" data-v="醫師">醫師</button>
+          <button class="opt" type="button" data-v="其他">其他</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>登記件數（可加購）</label>
+      <div id="items"></div>
+      <button id="addItem" class="additem" type="button">＋ 加購一件（自費）</button>
+      <div id="summary" class="summary"></div>
+      <div id="payPanel" class="pay" style="display:none"></div>
+    </div>
+
+    <button id="submit" class="btn">送出登記</button>
+    <div id="status" class="status" aria-live="polite"></div>
+
+    <div class="card stat" id="statCard" style="margin-top:16px">
+      <div class="shead">
+        <span class="stitle">📊 目前登記統計</span>
+        <span id="stotal" class="stotal">—</span>
+      </div>
+      <div id="statBody"></div>
+      <div id="statFoot" class="sfoot"></div>
+      <button id="refresh" class="refresh">重新整理</button>
+    </div>
+  </div>
+
+<script src="api.js"></script>
+<script>
+(function () {
+  const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+  const $ = id => document.getElementById(id);
+  let sizes = [];
+  let unitPrice = null;
+  let linePayUrl = '';
+  let bankInfo = '';
+  let role = null;
+  let items = [{ fit: null, size: null }];   // 預設 1 件
+
+  function setStatus(m, k){ const s = $('status'); s.textContent = m||''; s.className = 'status'+(k?' '+k:''); }
+
+  // 職類
+  $('roleOpts').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.opt'); if (!b) return;
+    $('roleOpts').querySelectorAll('.opt').forEach(o => o.classList.remove('sel'));
+    b.classList.add('sel'); role = b.dataset.v;
+  });
+
+  function optGroup(values, current, onPick){
+    const box = el('div', 'opts');
+    values.forEach(v => {
+      const b = el('button', 'opt' + (current === v ? ' sel' : ''), v); b.type = 'button';
+      b.addEventListener('click', () => {
+        box.querySelectorAll('.opt').forEach(o => o.classList.remove('sel'));
+        b.classList.add('sel'); onPick(v);
+      });
+      box.appendChild(b);
+    });
+    return box;
+  }
+
+  function renderItems(){
+    const host = $('items'); host.innerHTML = '';
+    items.forEach((it, i) => {
+      const card = el('div', 'item');
+      const head = el('div', 'ihead');
+      const lab = el('span', 'ilabel');
+      lab.innerHTML = '第 ' + (i + 1) + ' 件 · ' +
+        (i === 0 ? '<span class="free">免費（科部贈送）</span>' : '<span class="paid">自費</span>');
+      head.appendChild(lab);
+      if (i > 0) {
+        const rm = el('button', 'rm', '移除'); rm.type = 'button';
+        rm.addEventListener('click', () => { items.splice(i, 1); renderItems(); updateSummary(); });
+        head.appendChild(rm);
+      }
+      card.appendChild(head);
+      card.appendChild(el('div', 'sub', '版型'));
+      card.appendChild(optGroup(['中性','男版','女版'], it.fit, v => { it.fit = v; }));
+      card.appendChild(el('div', 'sub', '尺寸'));
+      card.appendChild(optGroup(sizes, it.size, v => { it.size = v; }));
+      host.appendChild(card);
+    });
+  }
+
+  function updateSummary(){
+    const total = items.length;
+    const paid = Math.max(0, total - 1);
+    let html = '共 <b>' + total + '</b> 件：免費 1 件';
+    if (paid > 0) {
+      html += '、<span class="pay">自費 ' + paid + ' 件</span>';
+      if (unitPrice != null) html += '（' + paid + ' × ' + unitPrice + ' 元 = <span class="pay">' + (paid * unitPrice) + ' 元</span>）';
+      else html += '（金額待定）';
+    }
+    $('summary').innerHTML = html;
+    renderPay(paid);
+  }
+
+  function renderPay(paid){
+    const panel = $('payPanel');
+    if (paid <= 0){ panel.style.display = 'none'; panel.innerHTML = ''; return; }
+    let html = '<div class="pt">💳 自費繳款</div>';
+    html += '<div class="amt">自費 <b>' + paid + ' 件</b>' +
+            (unitPrice != null ? '，應繳 <b>' + (paid * unitPrice) + ' 元</b>' : '（金額待定）') + '</div>';
+    if (linePayUrl) html += '<a class="linebtn" href="' + linePayUrl + '" target="_blank" rel="noopener">💚 用 LINE Pay 付款</a>';
+    if (bankInfo){
+      const safe = bankInfo.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      html += '<div class="bank"><div class="bh">銀行轉帳</div>' + safe + '</div>';
+    }
+    html += '<div class="memo">繳款後請備註「<b>姓名＋員工編號</b>」，方便對帳 🙏</div>';
+    panel.innerHTML = html;
+    panel.style.display = 'block';
+  }
+
+  function renderStats(s){
+    $('stotal').innerHTML = '已登記 <b>' + (s.total || 0) + '</b> 人 · ' + (s.garments || 0) + ' 件';
+    const body = $('statBody'); body.innerHTML = '';
+    const order = sizes.length ? sizes : Object.keys(s.bySize || {});
+    const max = Math.max(1, ...order.map(x => (s.bySize && s.bySize[x]) || 0));
+    order.forEach(x => {
+      const n = (s.bySize && s.bySize[x]) || 0;
+      const row = el('div', 'srow');
+      row.appendChild(el('span', 'ssz', x));
+      const track = el('div', 'strack');
+      const fill = el('div', 'sfill'); fill.style.width = (n / max * 100) + '%';
+      track.appendChild(fill); row.appendChild(track);
+      row.appendChild(el('span', 'scnt', n + ' 件'));
+      body.appendChild(row);
+    });
+    let foot = '免費 ' + (s.freeCount || 0) + ' 件 · 自費 ' + (s.paidCount || 0) + ' 件';
+    if (s.paidAmount != null) foot += ' · 自費金額合計 ' + s.paidAmount + ' 元';
+    $('statFoot').textContent = foot;
+  }
+
+  $('addItem').addEventListener('click', () => { items.push({ fit: null, size: null }); renderItems(); updateSummary(); });
+
+  $('refresh').addEventListener('click', async () => {
+    try { const s = await window.GASApi.call('sizeStats', {}); if (s && s.ok) renderStats(s); } catch (e) {}
+  });
+
+  $('submit').addEventListener('click', async () => {
+    const name = $('name').value.trim();
+    const empId = $('empId').value.trim();
+    if (!name || !empId){ setStatus('請填寫姓名與員工編號。', 'err'); return; }
+    if (!role){ setStatus('請選擇職類。', 'err'); return; }
+    for (let i = 0; i < items.length; i++) {
+      if (!items[i].fit || !items[i].size){ setStatus('第 ' + (i+1) + ' 件的版型與尺寸都要選。', 'err'); return; }
+    }
+    $('submit').disabled = true; setStatus('送出中…');
+    try {
+      const res = await window.GASApi.call('sizeSubmit', { name, empId, role, items });
+      if (res && res.ok){
+        const paid = Math.max(0, (res.items || items.length) - 1);
+        let msg = (res.updated ? '已更新你的登記 ✓' : '登記成功 ✓') + ' 共 ' + (res.items || items.length) + ' 件（免費 1' + (paid > 0 ? '、自費 ' + paid : '') + '）。如需修改，重新登記即可。';
+        setStatus(msg, 'ok');
+        renderStats(res);
+      } else {
+        setStatus('送出失敗：' + (res && res.error ? res.error : '未知原因'), 'err');
+      }
+    } catch (err) {
+      setStatus(err.message || '送出時發生錯誤。', 'err');
+    } finally {
+      $('submit').disabled = false;
+    }
+  });
+
+  (async function init(){
+    try {
+      const res = await window.GASApi.call('sizeConfig', {});
+      if (res && res.ok){
+        sizes = res.sizes || [];
+        unitPrice = (res.unitPrice != null) ? res.unitPrice : null;
+        linePayUrl = res.linePayUrl || '';
+        bankInfo = res.bankInfo || '';
+        if (res.sizeNote){ const n = $('note'); n.textContent = res.sizeNote; n.style.display = 'block'; }
+        renderItems(); updateSummary(); renderStats(res);
+      } else {
+        $('items').textContent = '載入失敗';
+      }
+    } catch (e) { $('items').textContent = '載入失敗'; }
+  })();
+})();
+</script>
+</body>
+</html>
