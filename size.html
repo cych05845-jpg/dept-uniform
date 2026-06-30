@@ -63,6 +63,17 @@
   .summary b { color: var(--accent); }
   .summary .pay { color: var(--warm); font-weight: 700; }
 
+  /* 尺寸對照表 */
+  .chart-toggle { width: 100%; padding: 11px; font: inherit; font-weight: 700; color: var(--accent);
+    background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; cursor: pointer; }
+  .chart-box { margin-top: 12px; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .sizetable { border-collapse: collapse; width: 100%; font-size: .85rem; text-align: center; }
+  .sizetable th, .sizetable td { border: 1px solid var(--line); padding: 7px 6px; white-space: nowrap; }
+  .sizetable thead th { background: var(--accent); color: #fff; font-weight: 700; }
+  .sizetable tbody th { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .chartnote { font-size: .8rem; color: var(--ink-soft); margin: 10px 0 0; line-height: 1.5; }
+
   /* 繳款區（有自費才顯示） */
   .pay { margin-top: 12px; border: 1px solid var(--warm); border-radius: 10px; padding: 14px; background: #fffaf4; }
   .pay .pt { font-weight: 700; color: var(--warm); margin-bottom: 8px; }
@@ -100,7 +111,7 @@
   <div class="wrap">
     <div class="hero">
       <h1>急診部服 尺寸登記</h1>
-      <div class="rule">本單位員工 <b>第 1 件免費</b>（科部贈送）；<b>第 2 件起自費</b>。每件可各自選版型與尺寸。</div>
+      <div class="rule">本單位員工 <b>第 1 件免費</b>（科部贈送）；<b>第 2 件起自費</b>。<b>統一版型</b>，不分男女，只需選尺寸。</div>
       <div id="note" class="note" style="display:none"></div>
     </div>
 
@@ -126,6 +137,28 @@
           <button class="opt" type="button" data-v="行政人員">行政人員</button>
           <button class="opt" type="button" data-v="其他">其他</button>
         </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <button id="chartToggle" class="chart-toggle" type="button">📏 尺寸對照表（點開查看）</button>
+      <div id="chartBox" class="chart-box" style="display:none">
+        <div class="table-scroll">
+          <table class="sizetable">
+            <thead><tr><th>尺碼</th><th>衣長</th><th>胸寬</th><th>肩寬</th><th>袖長</th><th>適合身高<br>(cm)</th><th>適合體重<br>(kg)</th></tr></thead>
+            <tbody>
+              <tr><th>S</th><td>64</td><td>46</td><td>42</td><td>19</td><td>160–165</td><td>50–60</td></tr>
+              <tr><th>M</th><td>67</td><td>49</td><td>45</td><td>20</td><td>165–170</td><td>60–70</td></tr>
+              <tr><th>L</th><td>70</td><td>52</td><td>48</td><td>21</td><td>170–175</td><td>70–80</td></tr>
+              <tr><th>XL</th><td>73</td><td>55</td><td>51</td><td>21</td><td>175–180</td><td>80–90</td></tr>
+              <tr><th>2XL</th><td>75</td><td>58</td><td>54</td><td>22</td><td>180–185</td><td>90–100</td></tr>
+              <tr><th>3XL</th><td>77</td><td>61</td><td>57</td><td>22</td><td>185–190</td><td>100–110</td></tr>
+              <tr><th>4XL</th><td>79</td><td>64</td><td>60</td><td>23</td><td>190–195</td><td>110–120</td></tr>
+              <tr><th>5XL</th><td>81</td><td>67</td><td>63</td><td>23</td><td>195–200</td><td>120–130</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="chartnote">平放尺寸丈量，尺寸容許範圍 ±2–2.5cm 皆為正常值。<br>身高體重為常規推薦，僅供參考，實際請依實物為準。</p>
       </div>
     </div>
 
@@ -161,7 +194,7 @@
   let linePayUrl = '';
   let bankInfo = '';
   let role = null;
-  let items = [{ fit: null, size: null }];   // 預設 1 件
+  let items = [{ size: null }];   // 預設 1 件（統一版型，只選尺寸）
 
   function setStatus(m, k){ const s = $('status'); s.textContent = m||''; s.className = 'status'+(k?' '+k:''); }
 
@@ -200,8 +233,6 @@
         head.appendChild(rm);
       }
       card.appendChild(head);
-      card.appendChild(el('div', 'sub', '版型'));
-      card.appendChild(optGroup(['中性','男版','女版'], it.fit, v => { it.fit = v; }));
       card.appendChild(el('div', 'sub', '尺寸'));
       card.appendChild(optGroup(sizes, it.size, v => { it.size = v; }));
       host.appendChild(card);
@@ -257,7 +288,15 @@
     $('statFoot').textContent = foot;
   }
 
-  $('addItem').addEventListener('click', () => { items.push({ fit: null, size: null }); renderItems(); updateSummary(); });
+  $('addItem').addEventListener('click', () => { items.push({ size: null }); renderItems(); updateSummary(); });
+
+  // 尺寸對照表 展開/收合
+  $('chartToggle').addEventListener('click', () => {
+    const box = $('chartBox');
+    const open = box.style.display !== 'none';
+    box.style.display = open ? 'none' : 'block';
+    $('chartToggle').textContent = open ? '📏 尺寸對照表（點開查看）' : '📏 尺寸對照表（收合）';
+  });
 
   $('refresh').addEventListener('click', async () => {
     try { const s = await window.GASApi.call('sizeStats', {}); if (s && s.ok) renderStats(s); } catch (e) {}
@@ -269,7 +308,7 @@
     if (!name || !empId){ setStatus('請填寫姓名與員工編號。', 'err'); return; }
     if (!role){ setStatus('請選擇職類。', 'err'); return; }
     for (let i = 0; i < items.length; i++) {
-      if (!items[i].fit || !items[i].size){ setStatus('第 ' + (i+1) + ' 件的版型與尺寸都要選。', 'err'); return; }
+      if (!items[i].size){ setStatus('第 ' + (i+1) + ' 件請選擇尺寸。', 'err'); return; }
     }
     $('submit').disabled = true; setStatus('送出中…');
     try {
