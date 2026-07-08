@@ -12,30 +12,34 @@
 <title>急診部服 尺寸登記</title>
 <style>
   :root {
-    --bg: #eef2f3; --surface: #ffffff; --ink: #1f2933; --ink-soft: #5b6b75;
-    --line: #d7dee1; --accent: #0d7d74; --accent-soft: #e3f1ef; --warm: #c9772f;
-    --danger: #b4413a; --radius: 12px;
+    --bg: #f4f6fc; --surface: #ffffff; --ink: #1c2438; --ink-soft: #667089;
+    --line: #e6e9f2; --accent: #5b6cff; --accent-soft: #eef0fe; --warm: #d97706;
+    --danger: #e11d48; --radius: 14px;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink);
+  body { margin: 0; background: radial-gradient(1100px 560px at 50% -8%, #e8effe 0%, var(--bg) 58%); color: var(--ink); min-height: 100vh;
     font-family: -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
     line-height: 1.55; -webkit-text-size-adjust: 100%; }
   .wrap { max-width: 560px; margin: 0 auto; padding: 24px 16px 48px; }
 
   .hero { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 20px; margin-bottom: 16px; border-top: 4px solid var(--accent); }
+    padding: 20px; margin-bottom: 16px; border-top: 2px solid #22d3ee; box-shadow: 0 0 24px -6px rgba(91,108,255,.18); }
   .hero h1 { font-size: 1.25rem; margin: 0 0 8px; }
   .hero .rule { font-size: .9rem; color: var(--ink); background: var(--accent-soft);
     border-radius: 8px; padding: 10px 12px; }
   .hero .rule b { color: var(--accent); }
-  .note { background: #fbf3e9; border-radius: 8px; padding: 10px 12px; font-size: .86rem; margin-top: 10px; white-space: pre-wrap; }
+  .note { background: #fff7ed; border-radius: 8px; padding: 10px 12px; font-size: .86rem; margin-top: 10px; white-space: pre-wrap; }
+
+  .preview .pv-title { font-weight: 700; margin-bottom: 10px; }
+  .preview img { width: 100%; border-radius: 10px; border: 1px solid var(--line); display: block; }
+  .preview .pv-cap { font-size: .8rem; color: var(--ink-soft); margin-top: 8px; text-align: center; }
 
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
     padding: 18px; margin-bottom: 16px; }
   label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 6px; }
   label .req { color: var(--danger); }
   input[type="text"] { width: 100%; padding: 10px 12px; font: inherit; color: inherit;
-    border: 1px solid var(--line); border-radius: 8px; background: #fbfcfc; }
+    border: 1px solid var(--line); border-radius: 8px; background: #f8fafc; }
   input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
   .row { display: flex; gap: 12px; align-items: flex-start; }
   .row .field { flex: 1; }
@@ -44,7 +48,7 @@
 
   .opts { display: flex; flex-wrap: wrap; gap: 8px; }
   .opt { padding: 9px 16px; font: inherit; border: 1px solid var(--line); border-radius: 99px;
-    background: #fbfcfc; color: var(--ink); cursor: pointer; }
+    background: #f8fafc; color: var(--ink); cursor: pointer; }
   .opt.sel { border-color: var(--accent); background: var(--accent); color: #fff; font-weight: 700; }
 
   /* 每一件 */
@@ -75,19 +79,19 @@
   .chartnote { font-size: .8rem; color: var(--ink-soft); margin: 10px 0 0; line-height: 1.5; }
 
   /* 繳款區（有自費才顯示） */
-  .pay { margin-top: 12px; border: 1px solid var(--warm); border-radius: 10px; padding: 14px; background: #fffaf4; }
+  .pay { margin-top: 12px; border: 1px solid var(--warm); border-radius: 10px; padding: 14px; background: #fff7ed; }
   .pay .pt { font-weight: 700; color: var(--warm); margin-bottom: 8px; }
   .pay .amt { font-size: .95rem; margin-bottom: 10px; }
   .pay .amt b { color: var(--warm); }
   .pay .linebtn { display: block; text-align: center; text-decoration: none; padding: 12px;
     background: #06C755; color: #fff; font-weight: 700; border-radius: 8px; margin-bottom: 10px; }
-  .pay .bank { font-size: .9rem; background: #fff; border: 1px solid var(--line); border-radius: 8px;
+  .pay .bank { font-size: .9rem; background: #f8fafc; border: 1px solid var(--line); border-radius: 8px;
     padding: 10px 12px; white-space: pre-wrap; margin-bottom: 10px; }
   .pay .bank .bh { font-weight: 700; margin-bottom: 4px; }
   .pay .memo { font-size: .85rem; color: var(--ink-soft); }
 
   .btn { width: 100%; padding: 14px; font: inherit; font-weight: 700; color: #fff;
-    background: var(--accent); border: none; border-radius: 8px; cursor: pointer; }
+    background: linear-gradient(120deg,#5b6cff,#22d3ee); border: none; border-radius: 10px; cursor: pointer; box-shadow: 0 8px 26px -8px rgba(91,108,255,.75); text-shadow: 0 1px 2px rgba(0,0,0,.35); }
   .btn:disabled { opacity: .55; cursor: not-allowed; }
   .status { margin-top: 12px; font-size: .9rem; min-height: 1.1em; }
   .status.ok { color: var(--accent); font-weight: 600; }
@@ -100,7 +104,7 @@
   .srow { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
   .ssz { width: 3em; flex: none; font-weight: 700; font-size: .9rem; }
   .strack { flex: 1; height: 9px; background: var(--accent-soft); border-radius: 99px; overflow: hidden; }
-  .sfill { height: 100%; background: var(--accent); border-radius: 99px; transition: width .4s; }
+  .sfill { height: 100%; background: linear-gradient(90deg,#5b6cff,#22d3ee); border-radius: 99px; transition: width .4s; }
   .scnt { flex: none; min-width: 3em; text-align: right; font-size: .88rem; font-weight: 700; }
   .sfoot { margin-top: 10px; font-size: .85rem; color: var(--ink-soft); }
   .refresh { display: block; margin: 10px auto 0; padding: 8px 16px; font: inherit; font-weight: 600;
@@ -113,6 +117,12 @@
       <h1>急診部服 尺寸登記</h1>
       <div class="rule">本單位員工 <b>第 1 件免費</b>（科部贈送）；<b>第 2 件起自費</b>。<b>統一版型</b>，不分男女，只需選尺寸。</div>
       <div id="note" class="note" style="display:none"></div>
+    </div>
+
+    <div class="card preview">
+      <div class="pv-title">👕 款式預覽 · T17 黑色精梳棉</div>
+      <img src="design.jpg" alt="急診部服設計展示圖" loading="lazy">
+      <div class="pv-cap">實際顏色與細節以廠商布片打樣為準</div>
     </div>
 
     <div class="card">
@@ -166,6 +176,7 @@
       <label>登記件數（可加購）</label>
       <div id="items"></div>
       <button id="addItem" class="additem" type="button">＋ 加購一件（自費）</button>
+      <div id="addonNote" style="display:none; font-size:.85rem; color:var(--ink-soft); text-align:center; padding:10px 0;">目前僅開放免費 1 件登記；加購（自費）將於二次登記再開放。</div>
       <div id="summary" class="summary"></div>
       <div id="payPanel" class="pay" style="display:none"></div>
     </div>
@@ -193,6 +204,7 @@
   let unitPrice = null;
   let linePayUrl = '';
   let bankInfo = '';
+  let addonOpen = false;
   let role = null;
   let items = [{ size: null }];   // 預設 1 件（統一版型，只選尺寸）
 
@@ -288,7 +300,7 @@
     $('statFoot').textContent = foot;
   }
 
-  $('addItem').addEventListener('click', () => { items.push({ size: null }); renderItems(); updateSummary(); });
+  $('addItem').addEventListener('click', () => { if (!addonOpen) return; items.push({ size: null }); renderItems(); updateSummary(); });
 
   // 尺寸對照表 展開/收合
   $('chartToggle').addEventListener('click', () => {
@@ -336,6 +348,11 @@
         unitPrice = (res.unitPrice != null) ? res.unitPrice : null;
         linePayUrl = res.linePayUrl || '';
         bankInfo = res.bankInfo || '';
+        addonOpen = !!res.addonOpen;
+        if (!addonOpen) {
+          $('addItem').style.display = 'none';
+          $('addonNote').style.display = 'block';
+        }
         if (res.sizeNote){ const n = $('note'); n.textContent = res.sizeNote; n.style.display = 'block'; }
         renderItems(); updateSummary(); renderStats(res);
       } else {
