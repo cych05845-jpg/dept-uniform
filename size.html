@@ -28,6 +28,8 @@
   .hero .rule { font-size: .9rem; color: var(--ink); background: var(--accent-soft);
     border-radius: 8px; padding: 10px 12px; }
   .hero .rule b { color: var(--accent); }
+  .sizewarn { margin-top: 10px; background: #fff7ed; border: 1px solid var(--warm);
+    color: #9a5b00; border-radius: 8px; padding: 10px 12px; font-size: .9rem; font-weight: 600; line-height: 1.5; }
   .note { background: #fff7ed; border-radius: 8px; padding: 10px 12px; font-size: .86rem; margin-top: 10px; white-space: pre-wrap; }
 
   .preview .pv-title { font-weight: 700; margin-bottom: 10px; }
@@ -116,6 +118,7 @@
     <div class="hero">
       <h1>急診部服 尺寸登記</h1>
       <div class="rule">本單位員工 <b>第 1 件免費</b>（科部贈送）；<b>第 2 件起自費</b>。<b>統一版型</b>，不分男女，只需選尺寸。</div>
+      <div class="sizewarn">⚠️ 此款尺寸偏小，建議比平常習慣的尺寸「大一號」，以免太緊。拿不定時可參考下方尺寸對照表的身高體重。</div>
       <div id="note" class="note" style="display:none"></div>
     </div>
 
@@ -155,20 +158,21 @@
       <div id="chartBox" class="chart-box" style="display:none">
         <div class="table-scroll">
           <table class="sizetable">
-            <thead><tr><th>尺碼</th><th>衣長</th><th>胸寬</th><th>肩寬</th><th>袖長</th><th>適合身高<br>(cm)</th><th>適合體重<br>(kg)</th></tr></thead>
+            <thead><tr><th>尺碼</th><th>衣寬</th><th>衣長</th><th>袖長</th><th>建議身高<br>(cm)</th><th>建議體重<br>(kg)</th></tr></thead>
             <tbody>
-              <tr><th>S</th><td>64</td><td>46</td><td>42</td><td>19</td><td>160–165</td><td>50–60</td></tr>
-              <tr><th>M</th><td>67</td><td>49</td><td>45</td><td>20</td><td>165–170</td><td>60–70</td></tr>
-              <tr><th>L</th><td>70</td><td>52</td><td>48</td><td>21</td><td>170–175</td><td>70–80</td></tr>
-              <tr><th>XL</th><td>73</td><td>55</td><td>51</td><td>21</td><td>175–180</td><td>80–90</td></tr>
-              <tr><th>2XL</th><td>75</td><td>58</td><td>54</td><td>22</td><td>180–185</td><td>90–100</td></tr>
-              <tr><th>3XL</th><td>77</td><td>61</td><td>57</td><td>22</td><td>185–190</td><td>100–110</td></tr>
-              <tr><th>4XL</th><td>79</td><td>64</td><td>60</td><td>23</td><td>190–195</td><td>110–120</td></tr>
-              <tr><th>5XL</th><td>81</td><td>67</td><td>63</td><td>23</td><td>195–200</td><td>120–130</td></tr>
+              <tr><th>小L<br><small>XXS</small></th><td>44</td><td>60</td><td>17</td><td>130–140</td><td>女40–50</td></tr>
+              <tr><th>小XL<br><small>XS</small></th><td>47</td><td>63</td><td>19</td><td>140–155</td><td>女45–55</td></tr>
+              <tr><th>S</th><td>49</td><td>66</td><td>21</td><td>145–155</td><td>50–60</td></tr>
+              <tr><th>M</th><td>51</td><td>69</td><td>21</td><td>155–165</td><td>55–65</td></tr>
+              <tr><th>L</th><td>53</td><td>72</td><td>23</td><td>165–175</td><td>60–75</td></tr>
+              <tr><th>XL</th><td>57</td><td>74</td><td>23</td><td>175–185</td><td>65–90</td></tr>
+              <tr><th>2XL</th><td>59</td><td>76</td><td>24</td><td>183以上</td><td>70–100</td></tr>
+              <tr><th>3XL<br><small>+50/件</small></th><td>62</td><td>77</td><td>—</td><td>—</td><td>約110</td></tr>
+              <tr><th>4XL<br><small>+100/件</small></th><td>64</td><td>79</td><td>—</td><td>—</td><td>約120</td></tr>
             </tbody>
           </table>
         </div>
-        <p class="chartnote">平放尺寸丈量，尺寸容許範圍 ±2–2.5cm 皆為正常值。<br>身高體重為常規推薦，僅供參考，實際請依實物為準。</p>
+        <p class="chartnote">尺寸誤差 ±4cm，單位公分，實際請以實品為主。<br>「衣寬」為一面布的寬度；小L、小XL為嬌小女生適用。<br>3XL、4XL 屬特大加價：3XL 每件 +50 元、4XL 每件 +100 元（免費第 1 件若選此尺寸亦需補差價）。</p>
       </div>
     </div>
 
@@ -202,6 +206,7 @@
   const $ = id => document.getElementById(id);
   let sizes = [];
   let unitPrice = null;
+  let surcharges = {};
   let linePayUrl = '';
   let bankInfo = '';
   let addonOpen = false;
@@ -246,30 +251,45 @@
       }
       card.appendChild(head);
       card.appendChild(el('div', 'sub', '尺寸'));
-      card.appendChild(optGroup(sizes, it.size, v => { it.size = v; }));
+      card.appendChild(optGroup(sizes, it.size, v => { it.size = v; updateSummary(); }));
       host.appendChild(card);
     });
   }
 
-  function updateSummary(){
+  function computeCharge(){
     const total = items.length;
     const paid = Math.max(0, total - 1);
-    let html = '共 <b>' + total + '</b> 件：免費 1 件';
-    if (paid > 0) {
-      html += '、<span class="pay">自費 ' + paid + ' 件</span>';
-      if (unitPrice != null) html += '（' + paid + ' × ' + unitPrice + ' 元 = <span class="pay">' + (paid * unitPrice) + ' 元</span>）';
-      else html += '（金額待定）';
-    }
-    $('summary').innerHTML = html;
-    renderPay(paid);
+    let surcharge = 0;
+    items.forEach(it => { surcharge += (surcharges[it.size] || 0); });
+    const baseKnown = (unitPrice != null);
+    const base = baseKnown ? paid * unitPrice : 0;
+    const amount = base + surcharge;
+    const amountKnown = (paid === 0) || baseKnown;   // 無加購、或單價已設 → 金額完整
+    const hasCharge = (paid > 0) || (surcharge > 0);
+    return { total, paid, surcharge, amount, amountKnown, hasCharge };
   }
 
-  function renderPay(paid){
+  function updateSummary(){
+    const c = computeCharge();
+    let html = '共 <b>' + c.total + '</b> 件：免費 1 件';
+    if (c.paid > 0) html += '、加購 <span class="pay">' + c.paid + ' 件</span>';
+    if (c.hasCharge){
+      html += '　應繳：';
+      html += c.amountKnown ? '<span class="pay">' + c.amount + ' 元</span>' : '<span class="pay">' + c.amount + ' 元起</span>（單價未定）';
+      if (c.surcharge > 0) html += '<span style="color:var(--warm)">（含特大差價 ' + c.surcharge + '）</span>';
+    }
+    $('summary').innerHTML = html;
+    renderPay(c);
+  }
+
+  function renderPay(c){
     const panel = $('payPanel');
-    if (paid <= 0){ panel.style.display = 'none'; panel.innerHTML = ''; return; }
-    let html = '<div class="pt">💳 自費繳款</div>';
-    html += '<div class="amt">自費 <b>' + paid + ' 件</b>' +
-            (unitPrice != null ? '，應繳 <b>' + (paid * unitPrice) + ' 元</b>' : '（金額待定）') + '</div>';
+    if (!c.hasCharge){ panel.style.display = 'none'; panel.innerHTML = ''; return; }
+    let html = '<div class="pt">💳 繳款資訊</div>';
+    let line = '';
+    if (c.paid > 0) line += '加購 ' + c.paid + ' 件';
+    if (c.surcharge > 0) line += (line ? '、' : '') + '特大差價 ' + c.surcharge + ' 元';
+    html += '<div class="amt">' + line + '，應繳 <b>' + c.amount + ' 元' + (c.amountKnown ? '' : ' 起') + '</b></div>';
     if (linePayUrl) html += '<a class="linebtn" href="' + linePayUrl + '" target="_blank" rel="noopener">💚 用 LINE Pay 付款</a>';
     if (bankInfo){
       const safe = bankInfo.replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -327,7 +347,7 @@
       const res = await window.GASApi.call('sizeSubmit', { name, empId, role, items });
       if (res && res.ok){
         const paid = Math.max(0, (res.items || items.length) - 1);
-        let msg = (res.updated ? '已更新你的登記 ✓' : '登記成功 ✓') + ' 共 ' + (res.items || items.length) + ' 件（免費 1' + (paid > 0 ? '、自費 ' + paid : '') + '）。如需修改，重新登記即可。';
+        let msg = (res.updated ? '已更新你的登記 ✓' : '登記成功 ✓') + ' 共 ' + (res.items || items.length) + ' 件（免費 1' + (paid > 0 ? '、加購 ' + paid : '') + '）。如需修改，重新登記即可。';
         setStatus(msg, 'ok');
         renderStats(res);
       } else {
@@ -346,6 +366,7 @@
       if (res && res.ok){
         sizes = res.sizes || [];
         unitPrice = (res.unitPrice != null) ? res.unitPrice : null;
+        surcharges = res.surcharges || {};
         linePayUrl = res.linePayUrl || '';
         bankInfo = res.bankInfo || '';
         addonOpen = !!res.addonOpen;
